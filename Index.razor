@@ -1,0 +1,277 @@
+﻿@page "/empleados"
+<!-- llamamos el model empleados -->
+@using BlazorCrud5.Models
+<!-- llamamos los servicios -->
+@using BlazorCrud5.Data.Services
+<!-- inyectamos los servicios -->
+@inject IEmpleadosService EmpleadosService
+<!-- cursor que aparce sobre la columna para ordenar -->
+
+@using BlazorCrud5.Shared;
+
+<style>
+    .sort-th {
+        cursor: pointer;
+    }
+
+    .fa {
+        float: right;
+    }
+</style>
+
+
+<h2>Empleados</h2>
+<br />
+
+<div class="input-group mb-auto">
+    <div class="col-sm-6">
+        <a class="btn btn-primary" href='/CrearEmp'>Nuevo</a>
+    </div>
+    <div class="col-sm-6">
+        <FiltroTable BuscarTexto="@(e => EmpleadoBuscarTexto(e))"></FiltroTable>
+    </div>
+</div>
+<br />
+
+<div class="row">
+    @if (ListaEmpleados == null)
+    {
+        <p><em>Cargando...</em></p>
+    }
+    else
+    {
+        @if (ListaEmpleados.Count() > 0)
+        {
+            <PaginacionTable Items="ListaEmpleados" Recargar="RecargarLista">
+                <GridColumns>
+                    <th>
+                        <p style="color:#000000" ;><b>ID</b></p>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("IntFolio"))">
+                        <p style="color:#0A88DA" ;><b>Folio</b></p>
+                        <span class="fa @(SetSortIcon("IntFolio"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("DatIngreso"))">
+                        <p style="color: #0A88DA" ;><b>Ingreso</b></p>
+                        <span class="fa @(SetSortIcon("DatIngreso"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("StrStatus"))">
+                        <p style="color: #0A88DA" ;><b>Status</b></p>
+                        <span class="fa @(SetSortIcon("StrStatus"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("StrNombre"))">
+                        <p style="color: #0A88DA" ;><b>Nombre</b></p>
+                        <span class="fa @(SetSortIcon("StrNombre"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("StrApellido"))">
+                        <p style="color: #0A88DA" ;><b>Apellido</b></p>
+                        <span class="fa @(SetSortIcon("StrApellido"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("StrEmail"))">
+                        <p style="color: #0A88DA" ;><b>Email</b></p>
+                        <span class="fa @(SetSortIcon("StrEmail"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("StrDepartamento"))">
+                        <p style="color: #0A88DA" ;><b>Departamento</b></p>
+                        <span class="fa @(SetSortIcon("StrDepartamento"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("StrFuncion"))">
+                        <p style="color: #0A88DA" ;><b>Funcion</b></p>
+                        <span class="fa @(SetSortIcon("StrFuncion"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("DatBaja"))">
+                        <p style="color: #0A88DA" ;><b>Baja</b></p>
+                        <span class="fa @(SetSortIcon("DatBaja"))"></span>
+                    </th>
+                    <th class="sort-th" @onclick="@(() => SortTable("IntSueldo"))">
+                        <p style="color: #0A88DA" ;><b>Sueldo</b></p>
+                        <span class="fa @(SetSortIcon("IntSueldo"))"></span>
+                    </th>
+                    <th></th>
+                </GridColumns>
+                <GridRow Context="emp">
+                    <td>@emp.IntId</td>
+                    <td>@emp.IntFolio</td>
+                    <td>@emp.DatIngreso.Value.ToShortDateString()</td>
+                    @if (emp.StrStatus == true)
+                    {
+                        <td>Activo</td>
+                    }
+                    else
+                    {
+                        <td>Baja</td>
+                    }
+                    <td>@emp.StrNombre</td>
+                    <td>@emp.StrApellido</td>
+                    <td>@emp.StrEmail</td>
+                    <td>@emp.StrDepartamento</td>
+                    <td>@emp.StrFuncion</td>
+                    @if (emp.DatBaja != null)
+                            {
+                        <td>@emp.DatBaja.Value.ToShortDateString()</td>
+                        //<td>@emp.DatBaja.Value.ToString("dddd, dd MMMM yyyy")</td> CAMBIAR FORMATO
+                    }
+                    else
+                    {
+                        <td></td>
+                    }
+                    <td>@emp.IntSueldo</td>
+                    <td>
+                        <a class="btn btn-primary m-1" href='/ActualizarEmp/@emp.IntId'>Editar</a>
+                    </td>
+                </GridRow>
+            </PaginacionTable>
+        }
+        else
+        {
+            <p><b>No existen registros...</b></p>
+        }
+    }
+</div>
+<br />
+
+
+@code {
+
+    public bool RecargarLista { get; set; }
+    bool isLoading = true;
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // INICIO - RUTINAS PARA EL FILTREO EN AUTOMATICO POR COLUMNA DE Shared/FiltroTable.razor
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    public List<Empleado> empleadoLista { get; set; }
+    public List<Empleado> filtroempleadoLista { get; set; }
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // FIN - RUTINAS PARA EL FILTREO EN AUTOMATICO POR COLUMNA DE Shared/FiltroTable.razor
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+    //se recibe el listado de empleados y le podremos el nombre ListaEmpleados
+    private List<Empleado> ListaEmpleados = new List<Empleado>();
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // INICIO - LLAMA LOS DATOS QUE SE VISUALIZAN EN LA TABLA
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //para obtener los datos del repositorio services utilizamos el método
+    //OnInitializedAsync que se ejecuta en cuanto se entra al componente
+    //lo volvemos async
+
+    protected override async Task OnInitializedAsync()
+    {
+        //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        // INICIO - RUTINAS PARA EL FILTREO EN AUTOMATICO POR COLUMNA DE Shared/FiltroTable.razor
+        //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        empleadoLista = await EmpleadosService.ObtenerTodos();
+        //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        // FIN - RUTINAS PARA EL FILTREO EN AUTOMATICO POR COLUMNA DE Shared/FiltroTable.razor
+        //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        //la ListaEmpleado obtiene los datos del método ObtnereTodos del
+        //repositorio EmpleadosService
+        ListaEmpleados = await EmpleadosService.ObtenerTodos();
+    }
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // FIN - LLAMA LOS DATOS QUE SE VISUALIZAN EN LA TABLA
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    protected async Task CrearEmp(Empleado empleadocrear)
+    {
+        //await EmpleadosService.Crear(Empleado);
+        ListaEmpleados = await EmpleadosService.ObtenerTodos();
+    }
+    protected async Task ActualizarEmp(int id)
+    {
+        //await EmpleadosService.Actualizar(id, Empleado);
+        ListaEmpleados = await EmpleadosService.ObtenerTodos();
+    }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // INICIO - RUTINAS PARA EL ORDENAMIENTO DE LAS COLUMNAS
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //Cada vez que se presiona sobre la columna aparece un icono dependiendo la ordenación
+    //SE declare dos variables para obtener la columna y conocer la dirección de ordenamiento
+    private bool isSortedAscending;
+    private string activeSortColumn;
+
+    //ordena la columna seleccionada
+    private void SortTable(string columnName)
+    {
+        if (columnName != activeSortColumn)
+        {
+            ListaEmpleados = ListaEmpleados.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            isSortedAscending = true;
+            activeSortColumn = columnName;
+
+            //Recarga la lista para visualizar el texto filtrado
+            RecargarLista = true;
+        }
+        else
+        {
+            if (isSortedAscending)
+            {
+                ListaEmpleados = ListaEmpleados.OrderByDescending(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            }
+            else
+            {
+                ListaEmpleados = ListaEmpleados.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            }
+
+            isSortedAscending = !isSortedAscending;
+        }
+    }
+
+    //EL iconos que se muestran dependieno la ordenación de la columna
+    private string SetSortIcon(string columnName)
+    {
+        if (activeSortColumn != columnName)
+        {
+            return string.Empty;
+        }
+        if (isSortedAscending)
+        {
+            return "bi bi-caret-up-fill";
+        }
+        else
+        {
+            return "bi bi-caret-down-fill";
+        }
+    }
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // FIN - RUTINAS PARA EL ORDENAMIENTO DE LAS COLUMNAS
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // INICIO - RUTINAS PARA EL FILTREO EN AUTOMATICO POR COLUMNA DE Shared/FiltroTable.razor
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    private void EmpleadoBuscarTexto(ChangeEventArgs changeEventArgs)
+    {
+        string searchText = changeEventArgs.Value.ToString();
+
+        //Recarga la lista para visualizar el texto filtrado
+        RecargarLista = true;
+
+        //Revisar si el texto tecleado coincide en alguno de los campos de la tabla
+        filtroempleadoLista = empleadoLista.Where(emp =>
+        emp.IntFolio.ToString().Contains(searchText) ||
+        emp.DatIngreso.ToString().Contains(searchText) ||
+        emp.StrStatus.ToString().Contains(searchText) ||
+        emp.StrNombre.ToLower().Contains(searchText) ||
+        emp.StrApellido.ToLower().Contains(searchText) ||
+        emp.StrEmail.ToLower().Contains(searchText) ||
+        emp.StrDepartamento.ToLower().Contains(searchText) ||
+        emp.StrFuncion.ToLower().Contains(searchText) ||
+        emp.DatBaja.ToString().Contains(searchText) ||
+        emp.IntSueldo.ToString().Contains(searchText)).ToList();
+
+        ListaEmpleados = filtroempleadoLista;
+
+        //Notifica al componente que su estado ha cambiado. Cuando corresponda,
+        //esto hará que el componente se vuelva a renderizar.
+        StateHasChanged();
+    }
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // FIN - RUTINAS PARA EL FILTREO EN AUTOMATICO POR COLUMNA DE Shared/FiltroTable.razor
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+}
