@@ -1,0 +1,13 @@
+﻿<!--CREA EL INPUT PARA QUE SE FILTREN EN AUTOMATICO LOS REGISTROS-->
+<!--SE MANDA A LLAMARA EN Empleados/Index.razor con el nombre FiltroTable-->
+<th>
+    <div>
+        <input class="form-control" size="100%" placeholder="Teclea el texto a buscar" @oninput="BuscarTexto" />
+    </div>
+</th>
+
+@code 
+{ 
+    [Parameter]
+    public EventCallback<ChangeEventArgs> BuscarTexto { get; set; } 
+}

@@ -1,0 +1,165 @@
+﻿@typeparam TItem
+
+<div class="col-12 row">
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped mb-0">
+            <thead class="btn-light">
+                <tr>
+                    @GridColumns
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in ItemList)
+                {
+                    <tr>
+                        @GridRow(item)
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<br />
+<div>
+    <br />
+    <center>
+    <div class="row">
+        <div class="col-md-6 alert-light">
+            @if (TotalRegistros > 0)
+            {
+                <span>
+                    <strong>@TotalRegistros</strong> registros
+                </span>
+                <span>&nbsp;|&nbsp;</span>
+                <span>
+                    Página <strong>@(PagActual + 1)</strong> de <strong>@TotalPag</strong>
+                </span>
+             }
+            else
+            {
+                <span>No hay resultados para esta búsqueda</span>
+                <span>&nbsp;|&nbsp;</span>
+            }
+        </div>
+        <div class="col-md-6">
+                <ul class="pagination">
+                    <li class="page-item">
+                        <button class="page-link" @onclick="@(e => NavegarA("Inicio"))"><i class="bi bi-skip-start-fill"></i></button>
+                    </li>
+                    <li class="page-item">
+                        <button class="page-link" @onclick="@(e => NavegarA("Ant"))"><i class="bi bi-caret-left-fill"></i></button>
+                    </li>
+                   @for (int i = InicioPag; i < FinPag; i++)
+                   {
+                        var pageNumber = i;
+                        <li class="page-item">
+                            <button class="page-link @(PagActual == pageNumber? "btn btn-primary":"page-item")" @onclick="@(e => ActualizaLista(pageNumber))">
+                                @(i + 1)
+                            </button>
+                        </li>
+                    }
+                    <li class="page-item">
+                        <button class="page-link" @onclick="@(e => NavegarA("Sig"))"><i class="bi bi-caret-right-fill"></i></button>
+                    </li>
+                    <li class="page-item">
+                        <button class="page-link" @onclick="@(e => NavegarA("Final"))"><i class="bi bi-skip-end-fill"></i></button>
+                    </li>
+                </ul>
+        </div>
+    </div>
+    </Center>
+</div>
+
+@code 
+{ 
+    [Parameter]
+    public RenderFragment GridColumns { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem> GridRow { get; set; }
+
+    [Parameter]
+    public List<TItem> Items { get; set; }
+
+    public List<TItem> ItemList { get; set; }
+
+    public int RegxPag { get; set; }
+    public int TotalPag { get; set; }
+    public int PagActual { get; set; }
+    public int TotalRegistros { get; private set; }
+    public int InicioPag { get; private set; }
+    public int FinPag { get; private set; }
+
+    [Parameter]
+    public bool Recargar { get; set; }
+
+    protected override void OnInitialized()
+    {
+        RegxPag = 5; //cantidad de registros a visualizar por página
+        if (Items != null)
+        {
+            ItemList = Items.Take(RegxPag).ToList();
+            TotalPag = (int)Math.Ceiling(Items.Count() / (decimal)RegxPag);
+            ActualizaPagina();        }
+        base.OnInitialized();
+    }
+
+    protected override void OnAfterRender(bool InicioRender)
+    {
+        if (!InicioRender && Recargar)
+        {
+            ActualizaLista();
+            Recargar = false;
+            StateHasChanged();
+        }
+        base.OnAfterRender(InicioRender);
+    }
+
+    private void ActualizaLista(int pageNumber = 0)
+    {
+        if (Items != null)
+        {
+            ItemList = Items.Skip(pageNumber * RegxPag).Take(RegxPag).ToList();
+            TotalPag = (int)Math.Ceiling(Items.Count() / (decimal)RegxPag);
+            PagActual = pageNumber;
+            ActualizaPagina();
+        }
+    }
+
+    private void ActualizaPagina()
+    {
+        //indica la cantidad de paginas a visualizar
+        TotalRegistros = Items.Count();
+        var inicioPag = PagActual - 5;
+        var finPag = PagActual + 4;
+        if (inicioPag <= 0)
+        {
+            finPag -= (inicioPag - 1);
+            inicioPag = 0;
+        }
+        if (finPag > TotalPag)
+        {
+            finPag = TotalPag;
+            if (finPag > 10)
+            {
+                inicioPag = finPag - 9;
+            }
+        }
+        InicioPag = inicioPag;
+        FinPag = finPag;
+    }
+
+    private void NavegarA(string direction)
+    {
+        if (direction == "Ant" && PagActual != 0)
+            PagActual -= 1;
+        if (direction == "Sig" && PagActual != TotalPag - 1)
+            PagActual += 1;
+        if (direction == "Inicio")
+            PagActual = 0;
+        if (direction == "Final")
+            PagActual = TotalPag - 1;
+        ActualizaLista(PagActual);
+    }
+}
